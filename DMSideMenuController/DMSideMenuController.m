@@ -24,9 +24,41 @@
 #import "DMSideMenuController.h"
 
 
+@interface DMSideMenuContainerView : UIView
+
+@end
+
+@implementation DMSideMenuContainerView
+
+- (id)initWithFrame:(CGRect)frame {
+	self = [super initWithFrame:frame];
+	
+	if (self) {
+		self.backgroundColor = [UIColor whiteColor];
+		
+		self.layer.shadowColor = [UIColor blackColor].CGColor;
+		self.layer.shadowOpacity = 0.7;
+		self.layer.shadowOffset = CGSizeZero;
+		self.layer.shadowRadius = 2;
+	}
+	
+	return self;
+}
+
+- (void)layoutSubviews {
+	[super layoutSubviews];
+	
+	CGPathRef path = CGPathCreateWithRect(self.layer.bounds, NULL);
+	self.layer.shadowPath = path;
+	CGPathRelease(path);
+}
+
+@end
+
+
 @interface DMSideMenuController ()
 
-@property (strong, nonatomic) UIViewController *containerViewController;
+@property (strong, nonatomic) DMSideMenuContainerView *containerView;
 
 @property (strong, readonly, nonatomic) UIGestureRecognizer *panGestureRecognizer;
 @property (strong, readonly, nonatomic) UIGestureRecognizer *tapGestureRecognizer;
@@ -68,7 +100,7 @@
 	_overlapWidth = 50;
 	_gesturesEnabled = YES;
 	
-	_containerViewController = [[UIViewController alloc] init];
+	_containerView = [[DMSideMenuContainerView alloc] init];
 	
 	_panGestureRecognizer = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePanGesture:)];
 	
@@ -87,24 +119,13 @@
 	self.view = contentView;
 	
 	
-	[self addChildViewController:self.containerViewController];
+	self.containerView.frame = self.view.bounds;
+	self.containerView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
 	
-	self.containerViewController.view.backgroundColor = [UIColor whiteColor];
+	[self.containerView addGestureRecognizer:self.panGestureRecognizer];
+	[self.containerView addGestureRecognizer:self.tapGestureRecognizer];
 	
-	self.containerViewController.view.frame = self.view.bounds;
-	self.containerViewController.view.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-	
-	self.containerViewController.view.layer.shadowColor = [UIColor blackColor].CGColor;
-	self.containerViewController.view.layer.shadowOpacity = 0.7;
-	self.containerViewController.view.layer.shadowOffset = CGSizeZero;
-	self.containerViewController.view.layer.shadowRadius = 2;
-	
-	[self.containerViewController.view addGestureRecognizer:self.panGestureRecognizer];
-	[self.containerViewController.view addGestureRecognizer:self.tapGestureRecognizer];
-	
-	[self.view addSubview:self.containerViewController.view];
-	
-	[self.containerViewController didMoveToParentViewController:self];
+	[self.view addSubview:self.containerView];
 }
 
 #pragma mark - Handling gestures
@@ -112,30 +133,30 @@
 - (void)handlePanGesture:(UIPanGestureRecognizer *)panGestureRecognizer {
 	switch (panGestureRecognizer.state) {
 		case UIGestureRecognizerStateBegan: {
-			self.beginningTranslationX = self.containerViewController.view.transform.tx;
+			self.beginningTranslationX = self.containerView.transform.tx;
 		}
 			break;
 			
 		case UIGestureRecognizerStateCancelled:
 		case UIGestureRecognizerStateEnded: {
-			CGFloat vx = [panGestureRecognizer velocityInView:self.containerViewController.view].x;
+			CGFloat vx = [panGestureRecognizer velocityInView:self.containerView].x;
 			
 			CGFloat threshold = self.menuWidth / 3;
 			
-			BOOL menuOpen = (self.containerViewController.view.transform.tx > (self.menuWidth - self.overlapWidth) / 2 && vx > -threshold) || vx > threshold;
+			BOOL menuOpen = (self.containerView.transform.tx > (self.menuWidth - self.overlapWidth) / 2 && vx > -threshold) || vx > threshold;
 			
 			[self setMenuOpen:menuOpen animated:YES];
 		}
 			break;
 			
 		default: {
-			CGFloat tx = [panGestureRecognizer translationInView:self.containerViewController.view].x + self.beginningTranslationX;
+			CGFloat tx = [panGestureRecognizer translationInView:self.containerView].x + self.beginningTranslationX;
 			
 			if (tx > self.menuWidth) tx = self.menuWidth;
 			
 			if (tx < 0) tx = 0;
 			
-			self.containerViewController.view.transform = CGAffineTransformMakeTranslation(tx, 0);
+			self.containerView.transform = CGAffineTransformMakeTranslation(tx, 0);
 		}
 			break;
 	}
@@ -181,15 +202,15 @@
 	_mainViewController = mainViewController;
 	
 	if (_mainViewController) {
-		[self.containerViewController addChildViewController:_mainViewController];
+		[self addChildViewController:_mainViewController];
 		
 		_mainViewController.view.transform = CGAffineTransformIdentity;
-		_mainViewController.view.frame = self.containerViewController.view.bounds;
+		_mainViewController.view.frame = self.containerView.bounds;
 		_mainViewController.view.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
 		
-		[self.containerViewController.view addSubview:_mainViewController.view];
+		[self.containerView addSubview:_mainViewController.view];
 		
-		[_mainViewController didMoveToParentViewController:self.containerViewController];
+		[_mainViewController didMoveToParentViewController:self];
 	}
 }
 
@@ -213,7 +234,7 @@
 		_menuViewController.view.frame = CGRectMake(0, 0, self.menuWidth, CGRectGetHeight(self.view.bounds));
 		_menuViewController.view.autoresizingMask = UIViewAutoresizingFlexibleHeight;
 		
-		[self.view insertSubview:_menuViewController.view belowSubview:self.containerViewController.view];
+		[self.view insertSubview:_menuViewController.view belowSubview:self.containerView];
 		
 		[_menuViewController didMoveToParentViewController:self];
 	}
@@ -233,9 +254,9 @@
 	
 	void (^animationBlock)() = ^{
 		if (_menuOpen) {
-			self.containerViewController.view.transform = CGAffineTransformMakeTranslation(self.menuWidth - self.overlapWidth, 0);
+			self.containerView.transform = CGAffineTransformMakeTranslation(self.menuWidth - self.overlapWidth, 0);
 		} else {
-			self.containerViewController.view.transform = CGAffineTransformIdentity;
+			self.containerView.transform = CGAffineTransformIdentity;
 		}
 	};
 	
