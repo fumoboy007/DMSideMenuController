@@ -36,6 +36,7 @@
 @property (strong, nonatomic) UIViewController *mainViewController;  // default is nil
 @property (strong, nonatomic) UIViewController *menuViewController;  // default is nil
 
-@property (nonatomic) BOOL gesturesEnabled;  // default is YES
+@property (nonatomic) BOOL gesturesEnabled;                  // default is YES
+@property (nonatomic) BOOL useScreenEdgeInsteadOfNormalPan;  // default is NO
 
 @end

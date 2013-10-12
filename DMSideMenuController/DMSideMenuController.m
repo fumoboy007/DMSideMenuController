@@ -56,11 +56,12 @@
 @end
 
 
-@interface DMSideMenuController ()
+@interface DMSideMenuController () <UIGestureRecognizerDelegate>
 
 @property (strong, nonatomic) DMSideMenuContainerView *containerView;
 
-@property (strong, readonly, nonatomic) UIScreenEdgePanGestureRecognizer *panGestureRecognizer;
+@property (strong, readonly, nonatomic) UIScreenEdgePanGestureRecognizer *screenEdgePanGestureRecognizer;
+@property (strong, readonly, nonatomic) UIPanGestureRecognizer *panGestureRecognizer;
 @property (strong, readonly, nonatomic) UITapGestureRecognizer *tapGestureRecognizer;
 
 @property (nonatomic) CGFloat beginningTranslationX;
@@ -70,6 +71,7 @@
 
 @implementation DMSideMenuController
 
+@synthesize screenEdgePanGestureRecognizer = _screenEdgePanGestureRecognizer;
 @synthesize panGestureRecognizer = _panGestureRecognizer;
 @synthesize tapGestureRecognizer = _tapGestureRecognizer;
 
@@ -99,11 +101,16 @@
 	_menuWidth = 320;
 	_overlapWidth = 50;
 	_gesturesEnabled = YES;
+	_useScreenEdgeInsteadOfNormalPan = NO;
 	
 	_containerView = [[DMSideMenuContainerView alloc] init];
 	
-	_panGestureRecognizer = [[UIScreenEdgePanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePanGesture:)];
-	_panGestureRecognizer.edges = UIRectEdgeLeft;
+	_screenEdgePanGestureRecognizer = [[UIScreenEdgePanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePanGesture:)];
+	_screenEdgePanGestureRecognizer.edges = UIRectEdgeLeft;
+	_screenEdgePanGestureRecognizer.enabled = _useScreenEdgeInsteadOfNormalPan;
+	
+	_panGestureRecognizer = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePanGesture:)];
+	_panGestureRecognizer.delegate = self;
 	
 	_tapGestureRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleTapGesture:)];
 	_tapGestureRecognizer.delaysTouchesBegan = YES;
@@ -123,6 +130,7 @@
 	self.containerView.frame = self.view.bounds;
 	self.containerView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
 	
+	[self.containerView addGestureRecognizer:self.screenEdgePanGestureRecognizer];
 	[self.containerView addGestureRecognizer:self.panGestureRecognizer];
 	[self.containerView addGestureRecognizer:self.tapGestureRecognizer];
 	
@@ -165,6 +173,16 @@
 
 - (void)handleTapGesture:(UITapGestureRecognizer *)tapGestureRecognizer {
 	[self setMenuOpen:NO animated:YES];
+}
+
+#pragma mark - Gesture recognizer delegate
+
+- (BOOL)gestureRecognizerShouldBegin:(UIGestureRecognizer *)gestureRecognizer {
+	if (gestureRecognizer == self.panGestureRecognizer) {
+		return !self.useScreenEdgeInsteadOfNormalPan || self.menuOpen;
+	}
+	
+	return YES;
 }
 
 #pragma mark - Configuring widths
@@ -275,7 +293,16 @@
 	
 	_gesturesEnabled = gesturesEnabled;
 	
+	self.screenEdgePanGestureRecognizer.enabled = _gesturesEnabled && self.useScreenEdgeInsteadOfNormalPan;
 	self.panGestureRecognizer.enabled = _gesturesEnabled;
+}
+
+- (void)setUseScreenEdgeInsteadOfNormalPan:(BOOL)useScreenEdgeInsteadOfNormalPan {
+	if (useScreenEdgeInsteadOfNormalPan == _useScreenEdgeInsteadOfNormalPan) return;
+	
+	_useScreenEdgeInsteadOfNormalPan = useScreenEdgeInsteadOfNormalPan;
+	
+	self.screenEdgePanGestureRecognizer.enabled = _useScreenEdgeInsteadOfNormalPan && self.gesturesEnabled;
 }
 
 @end
