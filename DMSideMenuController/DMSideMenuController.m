@@ -60,8 +60,8 @@
 
 @property (strong, nonatomic) DMSideMenuContainerView *containerView;
 
-@property (strong, readonly, nonatomic) UIGestureRecognizer *panGestureRecognizer;
-@property (strong, readonly, nonatomic) UIGestureRecognizer *tapGestureRecognizer;
+@property (strong, readonly, nonatomic) UIScreenEdgePanGestureRecognizer *panGestureRecognizer;
+@property (strong, readonly, nonatomic) UITapGestureRecognizer *tapGestureRecognizer;
 
 @property (nonatomic) CGFloat beginningTranslationX;
 
@@ -102,7 +102,8 @@
 	
 	_containerView = [[DMSideMenuContainerView alloc] init];
 	
-	_panGestureRecognizer = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePanGesture:)];
+	_panGestureRecognizer = [[UIScreenEdgePanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePanGesture:)];
+	_panGestureRecognizer.edges = UIRectEdgeLeft;
 	
 	_tapGestureRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleTapGesture:)];
 	_tapGestureRecognizer.delaysTouchesBegan = YES;
